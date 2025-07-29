@@ -1,0 +1,77 @@
+# Issue 3: Installing the Latest fakeroot (Version 1.37.1.2) on Ubuntu 20.04 LTS
+
+I needed to install fakeroot version greater than 1.28 (specifically the latest, 1.37.1.2) on Ubuntu 20.04 LTS, as the stock version is 1.24-1. Newer versions via apt required libc6 >= 2.34, but Ubuntu 20.04 uses 2.31, leading to dependency conflicts.
+
+To resolve this, I built fakeroot 1.37.1.2 from Debian source code, ensuring compatibility with my system's libc. Below are the steps I followed.
+
+## Prerequisites
+
+First, I installed necessary build dependencies:
+
+```bash
+sudo apt update
+sudo apt install fakeroot build-essential debhelper libcap2-dev procps sharutils docbook-xml docbook-xsl xsltproc libxml2-utils po4a devscripts m4 texinfo perl
+```
+
+For debhelper compat level 13 (required by the source), I enabled focal-backports and installed the backported debhelper:
+
+```bash
+sudo add-apt-repository 'deb http://archive.ubuntu.com/ubuntu focal-backports main restricted universe multiverse'
+sudo apt update
+sudo apt install debhelper/focal-backports
+```
+
+The build also required Autoconf 2.71 (Ubuntu 20.04 has 2.69), so I built and installed it from source:
+
+```bash
+mkdir ~/autoconf-build && cd ~/autoconf-build
+wget https://ftp.gnu.org/gnu/autoconf/autoconf-2.71.tar.xz
+tar xf autoconf-2.71.tar.xz
+cd autoconf-2.71
+./configure --prefix=/usr
+make
+sudo make install
+```
+
+I verified the installation:
+
+```bash
+autoconf --version
+```
+
+This should output 2.71.
+
+## Building fakeroot
+
+With prerequisites in place, I built fakeroot:
+
+```bash
+mkdir ~/fakeroot-build && cd ~/fakeroot-build
+wget http://deb.debian.org/debian/pool/main/f/fakeroot/fakeroot_1.37.1.2-1.dsc
+wget http://deb.debian.org/debian/pool/main/f/fakeroot/fakeroot_1.37.1.2.orig.tar.gz
+wget http://deb.debian.org/debian/pool/main/f/fakeroot/fakeroot_1.37.1.2-1.debian.tar.xz
+dpkg-source -x fakeroot_1.37.1.2-1.dsc
+cd fakeroot-1.37.1.2
+debuild -us -uc
+```
+
+This generated .deb files in the parent directory.
+
+## Installing the Built Packages
+
+I installed the built packages:
+
+```bash
+cd ..
+sudo dpkg -i libfakeroot_1.37.1.2-1_amd64.deb fakeroot_1.37.1.2-1_amd64.deb
+```
+
+I verified the installation:
+
+```bash
+fakeroot --version
+```
+
+This output 1.37.1.2.
+
+This approach allowed me to use the latest fakeroot version on Ubuntu 20.04 LTS without upgrading the entire system or risking dependency conflicts. If you encounter similar issues, ensure all build tools are updated and compatible.
